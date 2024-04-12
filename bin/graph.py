@@ -1,26 +1,23 @@
 
 
+
 class Edge:
 
     def __init__(self, destination: 'Switch', depart: 'Switch' = None) -> None:
-        
-        assert(type(destination) is Switch)
+
         self._depart = depart
         self._destination = destination
      
     @property
-    def Destination(self) -> 'Switch':
-        return self._destination
-    
-    @property
     def Depart(self) -> 'Switch':
         return self._depart
     
+    @property
+    def Destination(self) -> 'Switch':
+        return self._destination
+    
     def set_depart(self, depart: 'Switch') -> None:
         self._depart = depart
-    
-    def __str__(self) -> str:
-        return f"Edge {self.Depart} -> {self.Destination}"
     
 class Switch:
 
@@ -48,14 +45,8 @@ class Switch:
             new_edge.set_depart(self)
             self._edges.append(new_edge)
 
-    def drop_edges(self) -> None:
-        self._edges = list()
-
     def __str__(self) -> str:
         return f'Switch #{self.ID} ({"powered" if self.power else "not powered"})'
-    
-    def __eq__(self, __other: 'Switch') -> bool:
-        return __other.ID == self.ID
 
 class Graph:
 
@@ -83,10 +74,6 @@ class Graph:
     def getAccessList(self, switch: Switch) -> list[Switch]:
         assert(type(switch) is Switch)
         return [i.Destination for i in self.getEdgeList(switch)]
-
-    def are_connected(self, switch1, switch2) -> bool:
-        assert(type(switch1) is Switch and type(switch2) is Switch)
-        return switch1 in self.getAccessList(switch2)
     
     def DFS(self, root_switch: Switch) -> list[Switch]:
 
