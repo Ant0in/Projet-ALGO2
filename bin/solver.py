@@ -1,101 +1,100 @@
 
 from reader import gridReader
-from graph import Switch, Graph, Edge
+from graph import Switch, Graph
 
 
+class Solver:
 
-
-
-def graphInit(filename: str, size: int) -> Graph:
-
-    closed_switch: list[Switch] = []
-    opened_swtich: list[Switch] = []
-
-    for id in range(1, size * 2 + 1):
-        closed_switch.append(Switch(id, True))
-        opened_swtich.append(Switch(id, False))
-
-    for data in gridReader(filename):
+    def __init__(self, filename: str, size: int) -> None:
         
-        switchLineID = data[0]
-        switchColumnID = data[1] + 4
-        connexionType: int = int(''.join([str(d) for d in data[2:]]), 2)
+        # On initialise le Graphe représentant notre situation.
+        self.graph: Graph = self.graphInit(filename, size)
 
-        match connexionType:
+    @staticmethod
+    def graphInit(filename: str, size: int) -> Graph:
+
+        opened_switchs: list[Switch] = []
+        closed_switchs: list[Switch] = []
+
+        # On initialise les switchs L, C dans leurs deux états possibles.
+        # Leur ID est positif si closed, négatif si opened.
+        for id in range(1, size * 2 + 1):
+            closed_switchs.append(Switch(id))
+            opened_switchs.append(Switch(-id))
+
+        for dataLine in gridReader(filename):
             
-            # 0001 | Fermé-Fermé
-            case 1:
-                # Ligne fermée implique Colomne fermée et inversément.
-                closed_switch[switchLineID - 1].add_edge(Edge(closed_switch[switchColumnID - 1]))
-                closed_switch[switchColumnID - 1].add_edge(Edge(closed_switch[switchLineID - 1]))
+            # Les ID des switchs sur la ligne ne changent pas, mais ceux sur les colomnes viennent après,
+            # d'où le +size. On identifie également le type d'allumage de chacune des lampes, et on en déduit
+            # les implications logiques à l'aide d'un grand match case.
+
+            lineID, columnID = dataLine[0] - 1, dataLine[1] + size - 1
+            power_mode = int(''.join(str(i) for i in dataLine[2:]), 2)
+
+            CL: Switch = closed_switchs[lineID]
+            OL: Switch = opened_switchs[lineID]
+            CC: Switch = closed_switchs[columnID]
+            OC: Switch = opened_switchs[columnID]
             
-            # 0010 | Fermé-Ouvert
-            case 2:
-                # Ligne Fermée implique Colomne ouverte et inversément.
-                closed_switch[switchLineID - 1].add_edge(Edge(opened_swtich[switchColumnID - 1]))
-                opened_swtich[switchColumnID - 1].add_edge(Edge(closed_switch[switchLineID - 1]))
+            match power_mode:
+                
+                # 0001 - FF
+                case 1: CL.implique(CC, doubleImplication=True)
+                # 0010 - FO
+                case 2: CL.implique(OC, doubleImplication=True)
+                # 0011 - FF || FO
+                case 3: CC.implique(CL); OC.implique(CL)
+                # 0100 - OF
+                case 4: OL.implique(CC, doubleImplication=True)
+                # 0101 - OF || FF
+                case 5: OL.implique(CC); CL.implique(CC)
+                # 0110 - OF || FO
+                case 6: OL.implique(CC, doubleImplication=True); CL.implique(OC, doubleImplication=True)
+                # 0111 - FF || OF || FO
+                case 7: OL.implique(CC); OC.implique(CL)
+                # 1000 - OO
+                case 8: OL.implique(OC, doubleImplication=True)
+                # 1001 - FF || OO
+                case 9: CL.implique(CC, doubleImplication=True); OL.implique(OC, doubleImplication=True)
+                # 1010 - OO || FO
+                case 10: OL.implique(OC); CL.implique(OC)
+                # 1011 - OO || FO || FF
+                case 11: OL.implique(OC); CC.implique(CL)
+                # 1010 - OO || FO
+                case 12: OL.implique(OC); CL.implique(OC)
+                # 1101 - OO || OF || FF
+                case 13: OC.implique(OL); CL.implique(CC)
+                # 1110 - OO || OF || FO
+                case 14: CL.implique(OC); CC.implique(OL)
 
-            # 0011 | Fermé-Fermé OU Fermé-Ouvert
-            case 3:
-                # Colomne fermée implique Ligne fermée et Colomne ouverte implique Ligne fermée.
-                closed_switch[switchColumnID - 1].add_edge(Edge(closed_switch[switchLineID - 1]))
-                opened_swtich[switchColumnID - 1].add_edge(Edge(closed_switch[switchLineID - 1]))
+                # 0000 - Nothing Works - Not interesting.
+                case 0: pass
+                # 1111 - Everything Works - Not interesting.
+                case 15: pass
+                # Default Case
+                case _: raise ValueError(f'[E] Type d\'allumage inconnu. [={power_mode}]')
 
-            # 0100 | Ouvert-Fermé
-            case 4:
-                opened_swtich[switchLineID - 1].add_edge(Edge(closed_switch[switchColumnID - 1]))
-                closed_switch[switchColumnID - 1].add_edge(Edge(opened_swtich[switchLineID - 1]))
+        return Graph(closed_switchs + opened_switchs)
 
-            # 0101 | Fermé-Fermé OU Ouvert-Fermé
-            case 5:
-                closed_switch[switchLineID - 1].add_edge(Edge(closed_switch[switchColumnID - 1]))
-                opened_swtich[switchLineID - 1].add_edge(Edge(closed_switch[switchColumnID - 1]))
+    def canBeTurnedOn(self):
 
-            # 0110 | Fermé-Ouvert OU Ouvert-Fermé
-            case 6:
-                opened_swtich[switchLineID - 1].add_edge(Edge(closed_switch[switchColumnID - 1]))
-                closed_switch[switchColumnID - 1].add_edge(Edge(opened_swtich[switchLineID - 1]))
-                closed_switch[switchLineID - 1].add_edge(Edge(opened_swtich[switchColumnID - 1]))
-                opened_swtich[switchColumnID - 1].add_edge(Edge(closed_switch[switchLineID - 1]))
+        canBeTurnedOnBool: bool = True
 
-            # 0111 | Fermé-Ouvert OU Ouvert-Fermé ou Fermé-Fermé
-            case 7:
-                pass
+        # On vérifie si il est possible d'arriver à une contradiction du type :
+        # Un switch S allumé finit par impliquer que S est éteint. Si une telle contradiction
+        # est trouvée, alors il n'est pas possible d'allumer toutes les lampes à la fois.
 
-            # 1000 | Ouvert-Ouvert
-            case 8:
-                opened_swtich[switchLineID - 1].add_edge(Edge(opened_swtich[switchColumnID - 1]))
-                opened_swtich[switchColumnID - 1].add_edge(Edge(opened_swtich[switchLineID - 1]))
+        for s in self.graph.switches:
+            implications = [i.ID for i in s.DFS()]
+            
+            if (s.ID * -1) in implications:
+                canBeTurnedOnBool = False
+                break
 
-            # 1001 | Fermé-Fermé OU Ouvert-Ouvert
-            case 9:
-                opened_swtich[switchLineID - 1].add_edge(Edge(opened_swtich[switchColumnID - 1]))
-                opened_swtich[switchColumnID - 1].add_edge(Edge(opened_swtich[switchLineID - 1]))
-                closed_switch[switchLineID - 1].add_edge(Edge(closed_switch[switchColumnID - 1]))
-                closed_switch[switchColumnID - 1].add_edge(Edge(closed_switch[switchLineID - 1]))
+        return canBeTurnedOnBool
+                
+            
+if __name__ == '__main__':
 
-            # 1010 | Ouvert-Ouvert OU Fermé-Ouvert
-            case 10:
-                opened_swtich[switchLineID - 1].add_edge(Edge(opened_swtich[switchColumnID - 1]))
-                closed_switch[switchLineID - 1].add_edge(Edge(opened_swtich[switchColumnID - 1]))
-
-            # 1011 | Ouvert-Ouvert OU Fermé-Fermé OU Fermé-Ouvert
-            case 11:
-                opened_swtich[switchLineID - 1].add_edge(Edge(opened_swtich[switchColumnID - 1]))
-                closed_switch[switchColumnID - 1].add_edge(Edge(closed_switch[switchLineID - 1]))
-
-            case _:
-                ...
-
-
-        switches: list = closed_switch + opened_swtich
-        return Graph(*switches)
-
-        
-
-
-
-
-g = graphInit(r'../resources/exemple1.txt', size=4)
-
-print(g.Vertices[4].Edges)
+    path: str = r'../resources/exemple1.txt'
+    print(Solver(filename=path, size=4).canBeTurnedOn())
