@@ -8,10 +8,12 @@ class Solver:
     def __init__(self, filename: str, size: int) -> None:
         
         # On initialise le Graphe représentant notre situation.
-        self.graph: Graph = self.graphInit(filename, size)
+        self.size: int = size
+        self.dataGrid: list[list[int]] = gridReader(filename)
+        self.graph: Graph = self.graphInit(dataGrid=self.dataGrid, size=size)
 
     @staticmethod
-    def graphInit(filename: str, size: int) -> Graph:
+    def graphInit(dataGrid: list[list[int]], size: int) -> Graph:
 
         opened_switchs: list[Switch] = []
         closed_switchs: list[Switch] = []
@@ -22,7 +24,7 @@ class Solver:
             closed_switchs.append(Switch(id))
             opened_switchs.append(Switch(-id))
 
-        for dataLine in gridReader(filename):
+        for dataLine in dataGrid:
             
             # Les ID des switchs sur la ligne ne changent pas, mais ceux sur les colomnes viennent après,
             # d'où le +size. On identifie également le type d'allumage de chacune des lampes, et on en déduit
@@ -76,7 +78,8 @@ class Solver:
 
         return Graph(closed_switchs + opened_switchs)
 
-    def canBeTurnedOn(self):
+    @staticmethod
+    def canBeTurnedOn(graph: Graph) -> bool:
 
         canBeTurnedOnBool: bool = True
 
@@ -84,19 +87,55 @@ class Solver:
         # Un switch S allumé finit par impliquer que S est éteint. Si une telle contradiction
         # est trouvée, alors il n'est pas possible d'allumer toutes les lampes à la fois.
 
-        for s in self.graph.switches:
+        switchStates: set = set()
+
+        for s in graph.switches:
+
             implications = [i.ID for i in s.DFS()]
-            
-            if (s.ID * -1) in implications:
+            switchStates.update(implications)
+         
+
+        for switchState in switchStates:
+
+            # Si on trouve un switch à la fois allumé et éteint ; contradiction
+            if (switchState * -1) in switchStates:
                 canBeTurnedOnBool = False
                 break
 
         return canBeTurnedOnBool
+
+    def maxThatCanBeTurnedOn(self) -> int:
+        
+        if self.canBeTurnedOn(self.graph):
+            # Si il est déjà possible d'allumer toutes les lampes, on
+            # ne va pas s'embêter à faire des calculs pour rien uwu
+            return len(self.dataGrid)
+        
+        # On récupère la meilleure permutation de lampes avec un joli petit backtracking c:
+
+        def backtracking(currentConfig: list, maxLamps) -> None:
+
+            if self.canBeTurnedOn(self.graphInit(currentConfig, self.size)):
+                maxLamps = max(maxLamps, len(currentConfig))
                 
+                #if len(currentConfig) == maxLamps: print(currentConfig)
+
+            for possibleLamp in self.dataGrid:
+                if possibleLamp not in currentConfig:
+                    currentConfig.append(possibleLamp)
+                    maxLamps = backtracking(currentConfig, maxLamps)
+                    currentConfig.remove(possibleLamp)
+
+            return maxLamps
+        
+        return backtracking([], 0)
+        
+
+        
             
 if __name__ == '__main__':
 
-    path: str = r'../resources/exemple2.txt'
-    s = Solver(filename=path, size=3)
-    print(s.canBeTurnedOn())
+    path: str = r'../resources/exemple1.txt'
+    s = Solver(filename=path, size=4)
+    print(s.canBeTurnedOn(s.graph))
     
