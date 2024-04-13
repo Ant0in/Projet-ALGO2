@@ -41,7 +41,6 @@ class Switch:
 
     def add_edge(self, *new_edges: tuple[Edge]) -> None:
         for new_edge in new_edges:
-            assert(type(new_edge) is Edge)
             new_edge.set_depart(self)
             self._edges.append(new_edge)
 
@@ -52,7 +51,6 @@ class Graph:
 
     def __init__(self, *switches) -> None:
         
-        assert(all(type(i) is Switch for i in switches))
         self._switches = [i for i in switches]
 
     @property
@@ -68,16 +66,12 @@ class Graph:
         return ret
     
     def getEdgeList(self, switch: Switch) -> list[Edge]:
-        assert(type(switch) is Switch)
         return [i for i in switch.Edges]
     
     def getAccessList(self, switch: Switch) -> list[Switch]:
-        assert(type(switch) is Switch)
         return [i.Destination for i in self.getEdgeList(switch)]
     
     def DFS(self, root_switch: Switch) -> list[Switch]:
-
-        assert(type(root_switch) is Switch)
 
         ret: list = []
         
