@@ -96,5 +96,7 @@ class Solver:
             
 if __name__ == '__main__':
 
-    path: str = r'../resources/exemple1.txt'
-    print(Solver(filename=path, size=4).canBeTurnedOn())
+    path: str = r'../resources/exemple2.txt'
+    s = Solver(filename=path, size=3)
+    print(s.canBeTurnedOn())
+    
