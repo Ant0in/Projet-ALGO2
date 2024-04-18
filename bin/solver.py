@@ -5,18 +5,23 @@ from graph import Switch, Graph
 
 class Solver:
 
-    def __init__(self, filename: str, size: int) -> None:
+    def __init__(self, filename: str, size: int = 0) -> None:
         
         # On initialise le Graphe représentant notre situation.
-        self.size: int = size
         self.dataGrid: list[list[int]] = gridReader(filename)
-        self.graph: Graph = self.graphInit(dataGrid=self.dataGrid, size=size)
+        self.size = Solver.calculateSize(self.dataGrid) if size == 0 else size
 
     @staticmethod
-    def graphInit(dataGrid: list[list[int]], size: int) -> Graph:
+    def calculateSize(dataGrid: list[list[Switch]]) -> int:
+        return max(max(dataGrid, key=lambda d: d[0])[0], max(dataGrid, key=lambda d: d[1])[1])
+
+    @staticmethod
+    def makeImplicationGraph(dataGrid: list[list[int]], size: int) -> Graph:
 
         opened_switchs: list[Switch] = []
         closed_switchs: list[Switch] = []
+        lampSwitchs: list[Switch] = []
+        preRequisites: list[Switch] = []
 
         # On initialise les switchs L, C dans leurs deux états possibles.
         # Leur ID est positif si closed, négatif si opened.
@@ -37,76 +42,115 @@ class Solver:
             OL: Switch = opened_switchs[lineID]
             CC: Switch = closed_switchs[columnID]
             OC: Switch = opened_switchs[columnID]
+
+            lampSwitchs += [CL, CC, OL, OC]
             
             match power_mode:
                 
                 # 0001 - FF
-                case 1: CL.implique(CC, doubleImplication=True)
-                # 0010 - FO
-                case 2: CL.implique(OC, doubleImplication=True)
-                # 0011 - FF || FO
-                case 3: CC.implique(CL); OC.implique(CL)
-                # 0100 - OF
-                case 4: OL.implique(CC, doubleImplication=True)
-                # 0101 - OF || FF
-                case 5: OL.implique(CC); CL.implique(CC)
-                # 0110 - OF || FO
-                case 6: OL.implique(CC, doubleImplication=True); CL.implique(OC, doubleImplication=True)
-                # 0111 - FF || OF || FO
-                case 7: OL.implique(CC); OC.implique(CL)
-                # 1000 - OO
-                case 8: OL.implique(OC, doubleImplication=True)
-                # 1001 - FF || OO
-                case 9: CL.implique(CC, doubleImplication=True); OL.implique(OC, doubleImplication=True)
-                # 1010 - OO || FO
-                case 10: OL.implique(OC); CL.implique(OC)
-                # 1011 - OO || FO || FF
-                case 11: OL.implique(OC); CC.implique(CL)
-                # 1010 - OO || FO
-                case 12: OL.implique(OC); CL.implique(OC)
-                # 1101 - OO || OF || FF
-                case 13: OC.implique(OL); CL.implique(CC)
-                # 1110 - OO || OF || FO
-                case 14: CL.implique(OC); CC.implique(OL)
+                case 1:
+                    preRequisites += [CL, CC]
 
-                # 0000 - Nothing Works - Not interesting.
-                case 0: pass
+                # 0010 - FO
+                case 2:
+                    preRequisites += [CL, OC]
+
+                # 0011 - FF || FO
+                case 3:
+                    CC.implique(CL); OC.implique(CL)
+
+                # 0100 - OF
+                case 4:
+                    preRequisites += [OL, CC]
+
+                # 0101 - OF || FF
+                case 5:
+                    OL.implique(CC); CL.implique(CC)
+
+                # 0110 - OF || FO
+                case 6:
+                    OL.implique(CC, doubleImplication=True); CL.implique(OC, doubleImplication=True)
+
+                # 0111 - FF || OF || FO
+                case 7:
+                    OL.implique(CC); OC.implique(CL)
+
+                # 1000 - OO
+                case 8:
+                    preRequisites += [OL, OC]
+
+                # 1001 - FF || OO
+                case 9:
+                    CL.implique(CC, doubleImplication=True); OL.implique(OC, doubleImplication=True)
+
+                # 1010 - OO || FO
+                case 10:
+                    OL.implique(OC); CL.implique(OC)
+
+                # 1011 - OO || FO || FF
+                case 11:
+                    OL.implique(OC); CC.implique(CL)
+
+                # 1010 - OO || FO
+                case 12:
+                    OL.implique(OC); CL.implique(OC)
+
+                # 1101 - OO || OF || FF
+                case 13:
+                    OC.implique(OL); CL.implique(CC)
+
+                # 1110 - OO || OF || FO
+                case 14:
+                    CL.implique(OC); CC.implique(OL)
+
+                # 0000 - Nothing Works - on ajoute un truc que Graph peut facilement lire comme un problème
+                case 0: preRequisites.append(False)
+
                 # 1111 - Everything Works - Not interesting.
                 case 15: pass
+
                 # Default Case
                 case _: raise ValueError(f'[E] Type d\'allumage inconnu. [={power_mode}]')
 
-        return Graph(closed_switchs + opened_switchs)
+        return Graph(lampSwitchs, preRequisites)
 
     @staticmethod
-    def canBeTurnedOn(graph: Graph) -> bool:
+    def canBeTurnedOn(dataGrid: list[list[int]], size: int) -> bool:
 
-        canBeTurnedOnBool: bool = True
+        ImplicationGraph: Graph = Solver.makeImplicationGraph(dataGrid, size)
 
-        # On vérifie si il est possible d'arriver à une contradiction du type :
-        # Un switch S allumé finit par impliquer que S est éteint. Si une telle contradiction
-        # est trouvée, alors il n'est pas possible d'allumer toutes les lampes à la fois.
+        # On vérifie qu'il n'existe pas de contradiction dans les prérequis, sinon quoi on fera
+        # un early return.
 
-        switchStates: set = set()
+        preRequisites = [i.ID for i in ImplicationGraph.preRequisite]
+        
+        for pr in preRequisites:
 
-        for s in graph.switches:
+            # On vérifie qu'il n'y a pas un cas 0000
+            if not pr:
+                return False
+            
+            # Si le switch existe à l'état fermé ET ouvert ;
+            if (pr * -1) in preRequisites:
+                return False
+            
+        # Ensuite, on vérifie qu'aucune implication ne crée de contradiction évidente (on utilise le DFS).
 
-            implications = [i.ID for i in s.DFS()]
-            switchStates.update(implications)
-         
+        for s in ImplicationGraph.switches:
+            
+            # Les implications + les prérequis sont à vérifier
+            implications = s.DFS() + preRequisites
 
-        for switchState in switchStates:
-
-            # Si on trouve un switch à la fois allumé et éteint ; contradiction
-            if (switchState * -1) in switchStates:
-                canBeTurnedOnBool = False
-                break
-
-        return canBeTurnedOnBool
-
+            # Si le switch s existe à l'état fermé ET ouvert, via les implications ;
+            if (s.ID * -1) in implications:
+                return False
+        
+        # Si on a passé tous les tests, alors le système s'allume. 
+        return True
+    
     def maxThatCanBeTurnedOn(self) -> int:
         
-        if self.canBeTurnedOn(self.graph):
+        if Solver.canBeTurnedOn(self.dataGrid, self.size):
             # Si il est déjà possible d'allumer toutes les lampes, on
             # ne va pas s'embêter à faire des calculs pour rien uwu
             return len(self.dataGrid)
@@ -115,10 +159,10 @@ class Solver:
 
         def backtracking(currentConfig: list, maxLamps) -> None:
 
-            if self.canBeTurnedOn(self.graphInit(currentConfig, self.size)):
+            if Solver.canBeTurnedOn(currentConfig, self.size):
                 maxLamps = max(maxLamps, len(currentConfig))
                 
-                #if len(currentConfig) == maxLamps: print(currentConfig)
+                # if len(currentConfig) == maxLamps: print(currentConfig)
 
             for possibleLamp in self.dataGrid:
                 if possibleLamp not in currentConfig:
@@ -129,13 +173,12 @@ class Solver:
             return maxLamps
         
         return backtracking([], 0)
-        
-
-        
             
+
+
+
 if __name__ == '__main__':
 
-    path: str = r'../resources/exemple1.txt'
-    s = Solver(filename=path, size=4)
-    print(s.canBeTurnedOn(s.graph))
+    s = Solver(filename=r'../resources/exemple1.txt')
+    print(s.maxThatCanBeTurnedOn())
     
