@@ -1,6 +1,7 @@
 
-
+# done using 2-SAT method. More can be found here : https://www.youtube.com/watch?v=Ku-jJ0G4tIc
 from reader import GridReader, Lamp
+
 
 class Solver:
 
@@ -178,7 +179,7 @@ class Solver:
         return True
 
     @staticmethod
-    def maxThatCanBeTurnedOn(lamps) -> int:
+    def maxThatCanBeTurnedOn_backtracking(lamps) -> int:
         
         if Solver.canBeTurnedOn(lamps):
             # Si il est déjà possible d'allumer toutes les lampes, on
@@ -211,8 +212,3 @@ if __name__ == '__main__':
 
     w = GridReader.read(r'./../resources/exemple2.txt')
     print(Solver.canBeTurnedOn(w))
-
-
-
-
-# using 2-SAT : https://www.youtube.com/watch?v=Ku-jJ0G4tIc
