@@ -1,170 +1,201 @@
 
-from reader import gridReader
-from graph import Switch, Graph
 
+from reader import GridReader, Lamp
 
 class Solver:
 
-    def __init__(self, filename: str, size: int = 0) -> None:
+    @staticmethod
+    def find_max(alist: list) -> int:
+        return max(Solver.find_max(item) for item in alist) if isinstance(alist, list) else abs(alist)
+    
+    @staticmethod
+    def tarjan(graph: dict) -> list[list[int]]:
         
-        # On initialise le Graphe représentant notre situation.
-        self.dataGrid: list[list[int]] = gridReader(filename)
-        self.size = Solver.calculateSize(self.dataGrid) if size == 0 else size
+        def dfs(v):
+            nonlocal index, stack, indices, lowlinks, result
+            indices[v] = index
+            lowlinks[v] = index
+            index += 1
+            stack.append(v)
+
+            for neighbor in graph.get(v, []):
+                if neighbor not in indices:
+                    dfs(neighbor)
+                    lowlinks[v] = min(lowlinks[v], lowlinks[neighbor])
+                elif neighbor in stack:
+                    lowlinks[v] = min(lowlinks[v], indices[neighbor])
+
+            if lowlinks[v] == indices[v]:
+                scc = []
+                while True:
+                    node = stack.pop()
+                    scc.append(node)
+                    if node == v:
+                        break
+                result.append(scc)
+
+        index = 0
+        stack = []
+        indices = {}
+        lowlinks = {}
+        result = []
+
+        for node in graph:
+            if node not in indices:
+                dfs(node)
+
+        return result
 
     @staticmethod
-    def calculateSize(dataGrid: list[list[Switch]]) -> int:
-        return max(max(dataGrid, key=lambda d: d[0])[0], max(dataGrid, key=lambda d: d[1])[1])
+    def create_clauses(lamps: list[Lamp]) -> list[list[int]]:
 
-    @staticmethod
-    def makeImplicationGraph(dataGrid: list[list[int]], size: int) -> Graph:
+        clauses: list = []
+        # On calcule le nombre de lines pour padder l'ID sur la plus grande ligne
+        number_of_lines: int = max(lamps, key=lambda w: w.x).x + 1
+        
+        for l in lamps:
 
-        opened_switchs: list[Switch] = []
-        closed_switchs: list[Switch] = []
-        lampSwitchs: list[Switch] = []
-        preRequisites: list[Switch] = []
+            row_sid: int = l.x
+            column_sid: int = number_of_lines + l.y
 
-        # On initialise les switchs L, C dans leurs deux états possibles.
-        # Leur ID est positif si closed, négatif si opened.
-        for id in range(1, size * 2 + 1):
-            closed_switchs.append(Switch(id))
-            opened_switchs.append(Switch(-id))
-
-        for dataLine in dataGrid:
-            
-            # Les ID des switchs sur la ligne ne changent pas, mais ceux sur les colomnes viennent après,
-            # d'où le +size. On identifie également le type d'allumage de chacune des lampes, et on en déduit
-            # les implications logiques à l'aide d'un grand match case.
-
-            lineID, columnID = dataLine[0] - 1, dataLine[1] + size - 1
-            power_mode = int(''.join(str(i) for i in dataLine[2:]), 2)
-
-            CL: Switch = closed_switchs[lineID]
-            OL: Switch = opened_switchs[lineID]
-            CC: Switch = closed_switchs[columnID]
-            OC: Switch = opened_switchs[columnID]
-
-            lampSwitchs += [CL, CC, OL, OC]
-            
-            match power_mode:
+            match l.mode:
                 
+                # 0000 - Nothing
                 # 0001 - FF
-                case 1:
-                    preRequisites += [CL, CC]
-
                 # 0010 - FO
-                case 2:
-                    preRequisites += [CL, OC]
+                # 0100 - OF
+                # 1000 - OO
+
+                case 0: clauses.append([[]])
+                case 1: clauses.append([[row_sid, column_sid]])
+                case 2: clauses.append([[row_sid, -column_sid]])
+                case 4: clauses.append([[-row_sid, column_sid]])
+                case 8: clauses.append([[-row_sid, -column_sid]])
 
                 # 0011 - FF || FO
-                case 3:
-                    CC.implique(CL); OC.implique(CL)
-
-                # 0100 - OF
-                case 4:
-                    preRequisites += [OL, CC]
-
                 # 0101 - OF || FF
-                case 5:
-                    OL.implique(CC); CL.implique(CC)
-
                 # 0110 - OF || FO
-                case 6:
-                    OL.implique(CC, doubleImplication=True); CL.implique(OC, doubleImplication=True)
+                # 1001 - FF || OO
+                # 1010 - OO || FO
+                # 1100 - OO || OF
+
+                case 3: clauses.append([[row_sid, column_sid], [row_sid, -column_sid]])
+                case 5: clauses.append([[-row_sid, column_sid], [row_sid, column_sid]])
+                case 6: clauses.append([[-row_sid, column_sid], [row_sid, -column_sid]])
+                case 9: clauses.append([[-row_sid, -column_sid], [row_sid, column_sid]])
+                case 10: clauses.append([[-row_sid, -column_sid], [row_sid, -column_sid]])
+                case 12: clauses.append([[-row_sid, -column_sid], [-row_sid, column_sid]])
 
                 # 0111 - FF || OF || FO
-                case 7:
-                    OL.implique(CC); OC.implique(CL)
-
-                # 1000 - OO
-                case 8:
-                    preRequisites += [OL, OC]
-
-                # 1001 - FF || OO
-                case 9:
-                    CL.implique(CC, doubleImplication=True); OL.implique(OC, doubleImplication=True)
-
-                # 1010 - OO || FO
-                case 10:
-                    OL.implique(OC); CL.implique(OC)
-
                 # 1011 - OO || FO || FF
-                case 11:
-                    OL.implique(OC); CC.implique(CL)
-
-                # 1010 - OO || FO
-                case 12:
-                    OL.implique(OC); CL.implique(OC)
-
                 # 1101 - OO || OF || FF
-                case 13:
-                    OC.implique(OL); CL.implique(CC)
-
                 # 1110 - OO || OF || FO
-                case 14:
-                    CL.implique(OC); CC.implique(OL)
+                # 1111 - Everything Works
 
-                # 0000 - Nothing Works - on ajoute un truc que Graph peut facilement lire comme un problème
-                case 0: preRequisites.append(False)
-
-                # 1111 - Everything Works - Not interesting.
-                case 15: pass
+                case 7: clauses.append([[row_sid, column_sid], [-row_sid, column_sid], [row_sid, -column_sid]])
+                case 11: clauses.append([[-row_sid, -column_sid], [row_sid, -column_sid], [row_sid, column_sid]])
+                case 13: clauses.append([[-row_sid, -column_sid], [-row_sid, column_sid], [row_sid, column_sid]])
+                case 14: clauses.append([[-row_sid, -column_sid], [-row_sid, column_sid], [row_sid, -column_sid]])
+                case 15: clauses.append([[-row_sid, -column_sid], [-row_sid, column_sid], [row_sid, -column_sid], [row_sid, column_sid]])
 
                 # Default Case
-                case _: raise ValueError(f'[E] Type d\'allumage inconnu. [={power_mode}]')
+                case _: raise NotImplementedError(f'[E] Mode d\'allumage inconnu (={l.mode}).')
 
-        return Graph(lampSwitchs, preRequisites)
+        return clauses
 
     @staticmethod
-    def canBeTurnedOn(dataGrid: list[list[int]], size: int) -> bool:
+    def simplify_clauses(clauses: list[list[int]]) -> tuple[list[list[int]], bool]:
 
-        ImplicationGraph: Graph = Solver.makeImplicationGraph(dataGrid, size)
+        possible_simplification: bool = True
+        prerequisites: set = set()
+        contradiction: bool = False
 
-        # On vérifie qu'il n'existe pas de contradiction dans les prérequis, sinon quoi on fera
-        # un early return.
+        while possible_simplification:
 
-        preRequisites = [i.ID for i in ImplicationGraph.preRequisite]
+            possible_simplification = False
+
+            for c in clauses[:]:
+
+                # Si la clause est de taille 0, alors rien ne peut la satisfaire.
+                if len(c) == 0:
+                    contradiction: bool = True
+            
+                # Si notre clause est de taille 1 : alors ce n'est plus une clause mais une obligation.
+                elif len(c) == 1:
+
+                    for t in c[0]: prerequisites.add(t)
+                    clauses.remove(c)
+                    possible_simplification = True
+
+                # Sinon la clause n'est pas unaire, alors on la simplifie si on peut puis on passe juste à autre chose.
+                else:     
+                    
+                    # On veut regarder si l'une des conditions contient une position interdite.
+                    for d in c[:]:
+
+                        for u in d:
+                            if u * -1 in prerequisites:
+                                possible_simplification = True
+                                c.remove(d)
+                                break
+
+            for n in prerequisites:
+                if n * -1 in prerequisites:
+                    contradiction = True
+                    break
         
-        for pr in preRequisites:
-
-            # On vérifie qu'il n'y a pas un cas 0000
-            if not pr:
-                return False
-            
-            # Si le switch existe à l'état fermé ET ouvert ;
-            if (pr * -1) in preRequisites:
-                return False
-            
-        # Ensuite, on vérifie qu'aucune implication ne crée de contradiction évidente (on utilise le DFS).
-
-        for s in ImplicationGraph.switches:
-            
-            # Les implications + les prérequis sont à vérifier
-            implications = s.DFS() + preRequisites
-
-            # Si le switch s existe à l'état fermé ET ouvert, via les implications ;
-            if (s.ID * -1) in implications:
-                return False
+        return clauses, contradiction
+                
+    @staticmethod
+    def canBeTurnedOn(lamps: list[Lamp]) -> bool:
         
-        # Si on a passé tous les tests, alors le système s'allume. 
+        clauses, contradiction = Solver.simplify_clauses(Solver.create_clauses(lamps))
+
+        # Si on a une contradiction dans les clauses unaires, alors on return False : le système ne peut pas s'allumer.
+        if contradiction: return False
+        # Si pas de contradiction mais aucune clauses, alors on peut retourner True.
+        if not clauses: return True
+
+        # Réprésentation sous forme de liste d'accès.
+        graph: dict = {}
+        nb_var: int = Solver.find_max(clauses)
+
+        for i in range(1, nb_var + 1):
+            graph[i] = []
+            graph[-i] = []
+
+        for c in clauses:
+            for a, b in c:
+                graph[a].append(b)
+                graph[b].append(a)
+
+        scc = Solver.tarjan(graph)
+
+        for cc in scc:
+            for n in cc:
+                if n * -1 in cc:
+                    return False
         return True
-    
-    def maxThatCanBeTurnedOn(self) -> int:
+
+    @staticmethod
+    def maxThatCanBeTurnedOn(lamps) -> int:
         
-        if Solver.canBeTurnedOn(self.dataGrid, self.size):
+        if Solver.canBeTurnedOn(lamps):
             # Si il est déjà possible d'allumer toutes les lampes, on
             # ne va pas s'embêter à faire des calculs pour rien uwu
-            return len(self.dataGrid)
+            return len(lamps)
         
         # On récupère la meilleure permutation de lampes avec un joli petit backtracking c:
 
         def backtracking(currentConfig: list, maxLamps) -> None:
 
-            if Solver.canBeTurnedOn(currentConfig, self.size):
-                maxLamps = max(maxLamps, len(currentConfig))
+            if currentConfig:
+                if Solver.canBeTurnedOn(currentConfig):
+                    maxLamps = max(maxLamps, len(currentConfig))
                 
                 # if len(currentConfig) == maxLamps: print(currentConfig)
 
-            for possibleLamp in self.dataGrid:
+            for possibleLamp in lamps:
                 if possibleLamp not in currentConfig:
                     currentConfig.append(possibleLamp)
                     maxLamps = backtracking(currentConfig, maxLamps)
@@ -173,12 +204,15 @@ class Solver:
             return maxLamps
         
         return backtracking([], 0)
-            
 
 
 
 if __name__ == '__main__':
 
-    s = Solver(filename=r'../resources/exemple1.txt')
-    print(s.maxThatCanBeTurnedOn())
-    
+    w = GridReader.read(r'./../resources/exemple2.txt')
+    print(Solver.canBeTurnedOn(w))
+
+
+
+
+# using 2-SAT : https://www.youtube.com/watch?v=Ku-jJ0G4tIc
