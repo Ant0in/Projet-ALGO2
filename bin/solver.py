@@ -3,6 +3,37 @@
 from reader import GridReader, Lamp
 
 
+class Clustering:
+
+    @staticmethod
+    def is_adjacent(lamp1: Lamp, lamp2: Lamp) -> bool:
+        return lamp1.x == lamp2.x or lamp1.y == lamp2.y
+
+    @staticmethod
+    def explore_neighbors(lamp, lampList, visited, cluster):
+
+        visited.add(lamp)
+        cluster.append(lamp)
+        
+        for neighbor in lampList:
+            if neighbor not in visited and Clustering.is_adjacent(lamp, neighbor):
+                Clustering.explore_neighbors(neighbor, lampList, visited, cluster)
+
+    @staticmethod
+    def clustering(lampList):
+
+        clusters = []
+        visited = set()
+        
+        for coord in lampList:
+            if coord not in visited:
+                cluster = []
+                Clustering.explore_neighbors(coord, lampList, visited, cluster)
+                clusters.append(cluster)
+        
+        return clusters
+
+
 class Solver:
 
     @staticmethod
@@ -206,9 +237,19 @@ class Solver:
         
         return backtracking([], 0)
 
+    @staticmethod
+    def fastMAX2SAT_clustering(lamps: list[Lamp]) -> int:
+
+        # On calcule les clusters, puis on exécute l'algorithme classique.
+        clusters = Clustering.clustering(lamps)
+
+        maxLamps_sum: int = 0
+        for cl in clusters: maxLamps_sum += Solver.maxThatCanBeTurnedOn_backtracking(cl)
+        
+        return maxLamps_sum
+
 
 
 if __name__ == '__main__':
 
-    w = GridReader.read(r'./../resources/exemple2.txt')
-    print(Solver.canBeTurnedOn(w))
+    w = GridReader.read(r'./../resources/exemple1.txt')
