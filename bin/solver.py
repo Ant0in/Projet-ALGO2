@@ -79,7 +79,7 @@ class Solver:
         return result
 
     @staticmethod
-    def create_clauses(lamps: list[Lamp]) -> list[list[int]]:
+    def create_clauses(lamps: list[Lamp]) -> list[list[list[int]]]:
 
         clauses: list = []
         # On calcule le nombre de lines pour padder l'ID sur la plus grande ligne
@@ -136,7 +136,7 @@ class Solver:
         return clauses
 
     @staticmethod
-    def simplify_clauses(clauses: list[list[int]]) -> tuple[list[list[int]], bool]:
+    def simplify_clauses(clauses: list[list[list[int]]]) -> tuple[list[list[list[int]]], bool]:
 
         possible_simplification: bool = True
         prerequisites: set = set()
@@ -254,5 +254,5 @@ class Solver:
 
 if __name__ == '__main__':
 
-    g = GridReader.read('./../resources/exemple3.txt')
-    print(Solver.fastMAX2SAT_clustering(g))
+    g = GridReader.read('./../resources/exemple1.txt')
+    print(Solver.create_clauses(g))
