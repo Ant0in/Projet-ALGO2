@@ -1,3 +1,4 @@
+package dep;
 
 
 public class Lamp {

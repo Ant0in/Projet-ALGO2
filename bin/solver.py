@@ -1,5 +1,5 @@
 
-# done using 2-SAT method. More can be found here : https://www.youtube.com/watch?v=Ku-jJ0G4tIc
+
 from reader import GridReader, Lamp
 
 
@@ -242,14 +242,17 @@ class Solver:
 
         # On calcule les clusters, puis on exécute l'algorithme classique.
         clusters = Clustering.clustering(lamps)
+        # print(f'{len(clusters)} clusters | longest : {len(max(clusters, key=len))}')
 
         maxLamps_sum: int = 0
-        for cl in clusters: maxLamps_sum += Solver.maxThatCanBeTurnedOn_backtracking(cl)
+        for cl in clusters:
+            maxLamps_sum += Solver.maxThatCanBeTurnedOn_backtracking(cl)
         
         return maxLamps_sum
-
+    
 
 
 if __name__ == '__main__':
 
-    w = GridReader.read(r'./../resources/exemple1.txt')
+    g = GridReader.read('./../resources/exemple3.txt')
+    print(Solver.fastMAX2SAT_clustering(g))
