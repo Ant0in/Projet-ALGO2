@@ -8,18 +8,28 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import java.io.IOException; // Importer la classe IOException
+
 import dep.GridReader;
 import dep.Lamp;
 
 
-
 public class Solver {
 
-
     public static void main(String[] args) {
+        
+        // Main reader + solver :
 
-        Lamp l = new Lamp(0, 0, 0);
-        System.out.println(l);
+        List<Lamp> lamps = new ArrayList<>();
+
+        try {
+            List<Object> objects = GridReader.read("C:\\Users\\antoi\\Desktop\\Projet-INFO-F-203\\resources\\exemple1.txt", false);
+            for (Object obj : objects) {if (obj instanceof dep.Lamp) {lamps.add((Lamp) obj);}}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(lamps);
+
     }
-
 }

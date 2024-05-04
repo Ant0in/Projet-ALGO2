@@ -18,7 +18,7 @@ public class GridReader {
             String[] compostantes = line.split(" ");
             int x = Integer.parseInt(compostantes[0]);
             int y = Integer.parseInt(compostantes[1]);
-            int mode = Integer.parseInt(compostantes[2], 2);
+            int mode = Integer.parseInt(compostantes[2] + compostantes[3] + compostantes[4] + compostantes[5], 2);
 
             if (useRawData) {
                 ret.add(new int[]{x, y, mode});
