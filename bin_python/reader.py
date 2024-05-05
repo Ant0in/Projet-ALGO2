@@ -73,3 +73,8 @@ class GridReader:
             else: ret.append(Lamp(_x, _y, mode))
 
         return ret
+
+
+if __name__ == '__main__':
+
+    b = GridReader.read('./../resources/exemple1.txt')

@@ -254,5 +254,5 @@ class Solver:
 
 if __name__ == '__main__':
 
-    g = GridReader.read('./../resources/exemple1.txt')
-    print(Solver.create_clauses(g))
+    g = GridReader.read('./../resources/exemple4.txt')
+    print(Solver.fastMAX2SAT_clustering(g))
