@@ -1,7 +1,5 @@
 
-
 from reader import GridReader, Lamp
-
 
 class Clustering:
 
@@ -32,7 +30,6 @@ class Clustering:
                 clusters.append(cluster)
         
         return clusters
-
 
 class Solver:
 
@@ -83,7 +80,9 @@ class Solver:
 
         clauses: list = []
         # On calcule le nombre de lines pour padder l'ID sur la plus grande ligne
-        number_of_lines: int = max(lamps, key=lambda w: w.x).x + 1
+        if lamps:
+            number_of_lines: int = max(lamps, key=lambda w: w.x).x + 1
+        else: return [[[]]]
         
         for l in lamps:
 
@@ -236,7 +235,7 @@ class Solver:
             return maxLamps
         
         return backtracking([], 0)
-
+    
     @staticmethod
     def fastMAX2SAT_clustering(lamps: list[Lamp]) -> int:
 
@@ -246,13 +245,43 @@ class Solver:
 
         maxLamps_sum: int = 0
         for cl in clusters:
-            maxLamps_sum += Solver.maxThatCanBeTurnedOn_backtracking(cl)
+            maxLamps_sum += Solver.maxThatCanBeTurnedOn_dynamic(cl)
         
         return maxLamps_sum
     
+    @staticmethod
+    def maxThatCanBeTurnedOn_dynamic(lamps) -> int:
+        
+        if Solver.canBeTurnedOn(lamps):
+            return len(lamps)
+        
+        lamps = frozenset(lamps)
+
+        memoization = {}
+
+        def backtracking(currentConfig):
+            if currentConfig in memoization:
+                return memoization[currentConfig]
+
+            maxLamps = 0
+
+            if Solver.canBeTurnedOn(currentConfig):
+                maxLamps = len(currentConfig)
+
+            for lamp in lamps:
+                if lamp not in currentConfig:
+                    maxLamps = max(maxLamps, backtracking(currentConfig.union({lamp})))
+
+            memoization[currentConfig] = maxLamps
+            return maxLamps
+        
+        return backtracking(frozenset())
 
 
 if __name__ == '__main__':
 
-    g = GridReader.read('./../resources/exemple4.txt')
+    from random import choice
+
+    g = GridReader.read('./../resources/exemple5.txt')
+    while len(g) != 30: g.remove(choice(g))
     print(Solver.fastMAX2SAT_clustering(g))
