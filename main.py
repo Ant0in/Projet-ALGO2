@@ -11,7 +11,7 @@ if __name__ == '__main__':
     # - Solver.maxThatCanBeTurnedOn_dynamic
     # - Solver.fastMAX2SAT_clustering
 
-    lampGrid: list[object] = GridReader.read(filepath='./grid_examples/exemple1.txt', use_raw_data=False)
+    lampGrid: list = GridReader.read(filepath='./tests/exemple2.txt', use_raw_data=False)
     s: int = Solver.fastMAX2SAT_clustering(lamps=lampGrid)
     print(s)
 
