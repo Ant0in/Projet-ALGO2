@@ -32,7 +32,7 @@ Make sure you have Python >= 3.10 installed.
 3. Run the solver on a grid `input.txt`:
 
    ```bash
-   python main.py inpux.txt
+   python ./main.py ./tests/exemple1.txt
    ```
 
 ## License
