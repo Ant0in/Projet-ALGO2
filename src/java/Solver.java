@@ -8,9 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-import dep.Clustering;
-import dep.GridReader;
-import dep.Lamp;
+import core.Clustering;
+import core.GridReader;
+import core.Lamp;
 
 
 public class Solver {

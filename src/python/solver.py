@@ -1,5 +1,5 @@
 
-from reader import GridReader, Lamp
+from python.reader import GridReader, Lamp
 
 class Clustering:
 
