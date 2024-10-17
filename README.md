@@ -29,7 +29,7 @@ Make sure you have Python >= 3.10 installed.
    cd src/
    ```
 
-3. Run the solver on a grid `input.txt`:
+3. Run the solver on a grid `exemple1.txt`:
 
    ```bash
    python ./main.py ./tests/exemple1.txt
