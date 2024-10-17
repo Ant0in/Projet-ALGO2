@@ -6,6 +6,12 @@ from src.python.core.reader import GridReader
 
 if __name__ == '__main__':
 
-    lampGrid: list = GridReader.read(filepath='./resources/exemple1.txt', use_raw_data=False)
+    # Usage : use GridReader to read text files with lamp grids and then use one of the following ;
+    # - Solver.maxThatCanBeTurnedOn_backtracking
+    # - Solver.maxThatCanBeTurnedOn_dynamic
+    # - Solver.fastMAX2SAT_clustering
+
+    lampGrid: list[object] = GridReader.read(filepath='./grid_examples/exemple1.txt', use_raw_data=False)
     s: int = Solver.fastMAX2SAT_clustering(lamps=lampGrid)
     print(s)
+
