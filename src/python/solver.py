@@ -1,5 +1,7 @@
 
-from python.reader import GridReader, Lamp
+from src.python.core.lamp import Lamp
+
+
 
 class Clustering:
 
@@ -277,11 +279,3 @@ class Solver:
         
         return backtracking(frozenset())
 
-
-if __name__ == '__main__':
-
-    from random import choice
-
-    g = GridReader.read('./../resources/exemple5.txt')
-    while len(g) != 30: g.remove(choice(g))
-    print(Solver.fastMAX2SAT_clustering(g))
