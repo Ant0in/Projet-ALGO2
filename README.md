@@ -4,6 +4,12 @@
 
 This repository contains a **Max2SAT solver** designed to solve **lamp grid puzzles**. The project was developed as part of the **Algorithms 2** course INFO-F203 and applies **Max2SAT** (Maximum 2-Satisfiability) to optimize configurations of lamps in a grid while satisfying the maximum number of constraints. More info in `./pdf/consignes.pdf`.
 
+<p align="center">
+  <img src="./pdf/problem.png" alt="Lamp problem" width="400"/>
+  <br/>
+  <strong>1. Instance of the lighting problem</strong>
+</p>
+
 ## Features
 
 - **Max2SAT-based approach**: Transforms the lamp grid problem into a Max2SAT instance.
@@ -12,7 +18,7 @@ This repository contains a **Max2SAT solver** designed to solve **lamp grid puzz
 
 ## Usage
 
-Make sure you have Python >= 3.10 installed.
+Make sure you have `Python >= 3.10` installed.
 
 
 ### Running the Solver
