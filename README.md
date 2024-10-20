@@ -7,7 +7,7 @@ This repository contains a **Max2SAT solver** designed to solve **lamp grid puzz
 <p align="center">
   <img src="./pdf/problem.png" alt="Lamp problem" width="400"/>
   <br/>
-  <strong>1. Instance of the lighting problem</strong>
+  <strong>Instance of the lighting problem</strong>
 </p>
 
 ## Features
