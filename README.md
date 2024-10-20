@@ -32,7 +32,7 @@ Make sure you have `Python >= 3.10` installed.
 2. Navigate to the project directory:
 
    ```bash
-   cd src/
+   cd Projet-ALGO2/
    ```
 
 3. Run the solver on a grid `exemple1.txt`:
